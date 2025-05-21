@@ -63,14 +63,16 @@ def rankings():
 @app.route('/delete', methods=['POST'])
 def delete():
     data = request.json
-    team_number = data.get('teamNumber')  # Use teamNumber as a unique identifier
+    saved_at = data.get('_savedAt')  # Use _savedAt as a unique identifier
+
+    if not saved_at:
+        return jsonify({"status": "error", "message": "_savedAt is required"}), 400
 
     # Find and remove the entry from data_store
     global data_store
-    data_store = [entry for entry in data_store if entry.get('teamNumber') != team_number]
+    data_store = [entry for entry in data_store if entry.get('_savedAt') != saved_at]
 
     return jsonify({"status": "success", "message": "Entry deleted successfully!"})
-
 @app.route('/clear', methods=['POST'])
 def clear():
     global data_store
