@@ -90,14 +90,43 @@ def submit_leaderboard():
     if not all(key in data for key in ['username', 'score']):
         return jsonify({"status": "error", "message": "Missing required fields"}), 400
     
+    # Convert score to integer
+    try:
+        data['score'] = int(data['score'])
+    except (ValueError, TypeError):
+        return jsonify({"status": "error", "message": "Score must be a number"}), 400
+    
+    # Check if we should replace existing entry
+    replace = data.get('replace', False)
+    
     # Add timestamp
     data['timestamp'] = datetime.utcnow().isoformat() + 'Z'
-    leaderboard_store.append(data)
+    
+    # Find existing entry for this username
+    existing_index = next((i for i, entry in enumerate(leaderboard_store) 
+                         if entry['username'] == data['username']), None)
+    
+    if existing_index is not None:
+        if replace:
+            # Replace existing score if new score is higher
+            if data['score'] > leaderboard_store[existing_index]['score']:
+                leaderboard_store[existing_index] = data
+        else:
+            # Keep the higher score
+            if data['score'] > leaderboard_store[existing_index]['score']:
+                leaderboard_store[existing_index] = data
+    else:
+        # Add new entry
+        leaderboard_store.append(data)
     
     # Keep only top 100 scores to prevent memory issues
     leaderboard_store = sorted(leaderboard_store, key=lambda x: x['score'], reverse=True)[:100]
     
-    return jsonify({"status": "success", "message": "Score submitted successfully!"})
+    return jsonify({
+        "status": "success", 
+        "message": "Score submitted successfully!",
+        "action": "replaced" if existing_index is not None else "added"
+    })
 
 @app.route('/leaderboard', methods=['GET'])
 def get_leaderboard():
@@ -109,6 +138,11 @@ def get_leaderboard():
 @app.route('/leaderboard/clear', methods=['POST'])
 def clear_leaderboard():
     global leaderboard_store
+    # Optional: Add password verification here if needed
+    password = request.json.get('password') if request.json else None
+    if password != "Quantum Toast":  # Replace with your actual password
+        return jsonify({"status": "error", "message": "Invalid password"}), 403
+    
     leaderboard_store = []
     return jsonify({"status": "success", "message": "Leaderboard cleared!"})
 
