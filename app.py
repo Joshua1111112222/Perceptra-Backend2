@@ -114,12 +114,3 @@ def clear_leaderboard():
 
 if __name__ == '__main__':
     app.run(debug=True)
-
-@app.route('/leaderboard/clear', methods=['POST'])
-def clear_leaderboard():
-    global leaderboard_store
-    leaderboard_store = []
-    return jsonify({"status": "success", "message": "Leaderboard cleared!"})
-
-if __name__ == '__main__':
-    app.run(debug=True)
