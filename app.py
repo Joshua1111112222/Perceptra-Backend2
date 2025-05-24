@@ -7,6 +7,7 @@ CORS(app)  # Enable CORS for all routes
 
 # In-memory storage for demonstration purposes
 data_store = []
+leaderboard_store = []
 
 @app.route('/submit', methods=['POST'])
 def submit():
@@ -73,11 +74,42 @@ def delete():
     data_store = [entry for entry in data_store if entry.get('_savedAt') != saved_at]
 
     return jsonify({"status": "success", "message": "Entry deleted successfully!"})
+
 @app.route('/clear', methods=['POST'])
 def clear():
     global data_store
     data_store = []
     return jsonify({"status": "success", "message": "History cleared!"})
+
+# New Cookie Clicker Leaderboard Endpoints
+@app.route('/leaderboard/submit', methods=['POST'])
+def submit_leaderboard():
+    data = request.json
+    # Validate required fields
+    if not all(key in data for key in ['username', 'score']):
+        return jsonify({"status": "error", "message": "Missing required fields"}), 400
+    
+    # Add timestamp
+    data['timestamp'] = datetime.utcnow().isoformat() + 'Z'
+    leaderboard_store.append(data)
+    
+    # Keep only top 100 scores to prevent memory issues
+    global leaderboard_store
+    leaderboard_store = sorted(leaderboard_store, key=lambda x: x['score'], reverse=True)[:100]
+    
+    return jsonify({"status": "success", "message": "Score submitted successfully!"})
+
+@app.route('/leaderboard', methods=['GET'])
+def get_leaderboard():
+    # Return top 50 scores sorted by score (descending)
+    sorted_leaderboard = sorted(leaderboard_store, key=lambda x: x['score'], reverse=True)[:50]
+    return jsonify(sorted_leaderboard)
+
+@app.route('/leaderboard/clear', methods=['POST'])
+def clear_leaderboard():
+    global leaderboard_store
+    leaderboard_store = []
+    return jsonify({"status": "success", "message": "Leaderboard cleared!"})
 
 if __name__ == '__main__':
     app.run(debug=True)
