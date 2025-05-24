@@ -86,46 +86,44 @@ def clear():
 def submit_leaderboard():
     global leaderboard_store
     data = request.json
+    
     # Validate required fields
     if not all(key in data for key in ['username', 'score']):
         return jsonify({"status": "error", "message": "Missing required fields"}), 400
     
-    # Convert score to integer
+    # Ensure score is an integer (not float)
     try:
-        data['score'] = int(data['score'])
+        data['score'] = int(float(data['score']))  # First convert to float then to int
     except (ValueError, TypeError):
         return jsonify({"status": "error", "message": "Score must be a number"}), 400
     
-    # Check if we should replace existing entry
-    replace = data.get('replace', False)
+    # Trim and validate username
+    data['username'] = data['username'].strip()
+    if not data['username']:
+        return jsonify({"status": "error", "message": "Username cannot be empty"}), 400
     
     # Add timestamp
     data['timestamp'] = datetime.utcnow().isoformat() + 'Z'
     
-    # Find existing entry for this username
+    # Find existing entry
     existing_index = next((i for i, entry in enumerate(leaderboard_store) 
-                         if entry['username'] == data['username']), None)
+                        if entry['username'] == data['username']), None)
     
     if existing_index is not None:
-        if replace:
-            # Replace existing score if new score is higher
-            if data['score'] > leaderboard_store[existing_index]['score']:
-                leaderboard_store[existing_index] = data
-        else:
-            # Keep the higher score
-            if data['score'] > leaderboard_store[existing_index]['score']:
-                leaderboard_store[existing_index] = data
+        # Always replace if new score is higher
+        if data['score'] > leaderboard_store[existing_index]['score']:
+            leaderboard_store[existing_index] = data
     else:
-        # Add new entry
         leaderboard_store.append(data)
     
-    # Keep only top 100 scores to prevent memory issues
+    # Keep only top 100 scores
     leaderboard_store = sorted(leaderboard_store, key=lambda x: x['score'], reverse=True)[:100]
     
     return jsonify({
         "status": "success", 
         "message": "Score submitted successfully!",
-        "action": "replaced" if existing_index is not None else "added"
+        "score": data['score'],
+        "username": data['username']
     })
 
 @app.route('/leaderboard', methods=['GET'])
