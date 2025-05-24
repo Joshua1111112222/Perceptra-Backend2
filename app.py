@@ -5,7 +5,7 @@ from datetime import datetime
 app = Flask(__name__)
 CORS(app)  # Enable CORS for all routes
 
-# In-memory storage for demonstration purposes
+# Initialize storage at module level
 data_store = []
 leaderboard_store = []
 
@@ -53,7 +53,7 @@ def rankings():
             "scoring": scoring,
             "consistency": consistency,
             "notes": entry.get('notes', ''),
-            "_savedAt": entry.get('_savedAt', 'Unknown')  # Include the save timestamp
+            "_savedAt": entry.get('_savedAt', 'Unknown')
         })
 
     # Sort rankings_data by avgScore in descending order
@@ -81,9 +81,10 @@ def clear():
     data_store = []
     return jsonify({"status": "success", "message": "History cleared!"})
 
-# New Cookie Clicker Leaderboard Endpoints
+# Cookie Clicker Leaderboard Endpoints
 @app.route('/leaderboard/submit', methods=['POST'])
 def submit_leaderboard():
+    global leaderboard_store
     data = request.json
     # Validate required fields
     if not all(key in data for key in ['username', 'score']):
@@ -94,13 +95,13 @@ def submit_leaderboard():
     leaderboard_store.append(data)
     
     # Keep only top 100 scores to prevent memory issues
-    global leaderboard_store
     leaderboard_store = sorted(leaderboard_store, key=lambda x: x['score'], reverse=True)[:100]
     
     return jsonify({"status": "success", "message": "Score submitted successfully!"})
 
 @app.route('/leaderboard', methods=['GET'])
 def get_leaderboard():
+    global leaderboard_store
     # Return top 50 scores sorted by score (descending)
     sorted_leaderboard = sorted(leaderboard_store, key=lambda x: x['score'], reverse=True)[:50]
     return jsonify(sorted_leaderboard)
