@@ -136,11 +136,6 @@ def get_leaderboard():
 @app.route('/leaderboard/clear', methods=['POST'])
 def clear_leaderboard():
     global leaderboard_store
-    # Optional: Add password verification here if needed
-    password = request.json.get('password') if request.json else None
-    if password != "Quantum Toast":  # Replace with your actual password
-        return jsonify({"status": "error", "message": "Invalid password"}), 403
-    
     leaderboard_store = []
     return jsonify({"status": "success", "message": "Leaderboard cleared!"})
 
